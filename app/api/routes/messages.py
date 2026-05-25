@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from app.database import get_db
-from app.schemas.schemas import MessageCreate, MessageUpdate, MessageResponse
+from app.schemas.schemas import MessageCreate, MessageUpdate, MessageResponse, PaginatedMessages
 from app.models.models import Message
 from app.core.deps import get_current_admin
 

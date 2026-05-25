@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from app.database import get_db
-from app.schemas.schemas import TestimonialCreate, TestimonialUpdate, TestimonialResponse
+from app.schemas.schemas import TestimonialCreate, TestimonialUpdate, TestimonialResponse, PaginatedTestimonials
 from app.models.models import Testimonial
 from app.core.deps import get_current_admin
 
