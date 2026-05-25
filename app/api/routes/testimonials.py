@@ -16,7 +16,7 @@ def create_testimonial(testimonial: TestimonialCreate, db: Session = Depends(get
     db.refresh(db_t)
     return db_t
 
-@router.get("/", response_model=List[TestimonialResponse])
+@router.get("/", response_model=PaginatedTestimonials)
 def get_testimonials(status: Optional[str] = None, featured: Optional[bool] = None,
                      skip: int = 0, limit: int = 50, db: Session = Depends(get_db)):
     query = db.query(Testimonial)
@@ -24,7 +24,9 @@ def get_testimonials(status: Optional[str] = None, featured: Optional[bool] = No
         query = query.filter(Testimonial.status == status)
     if featured is not None:
         query = query.filter(Testimonial.is_featured == featured)
-    return query.order_by(Testimonial.created_at.desc()).offset(skip).limit(limit).all()
+    total = query.count()
+    items = query.order_by(Testimonial.created_at.desc()).offset(skip).limit(limit).all()
+    return {"items": items, "total": total}
 
 @router.get("/{testimonial_id}", response_model=TestimonialResponse)
 def get_testimonial(testimonial_id: int, db: Session = Depends(get_db), _=Depends(get_current_admin)):

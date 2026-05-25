@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import PageLayout from '../components/layout/PageLayout'
 import { testimonialsAPI } from '../utils/api'
@@ -17,13 +17,20 @@ const FALLBACK = [
 export default function TestimonialsPage() {
   const [testimonials, setTestimonials] = useState(FALLBACK)
   const [submitted, setSubmitted] = useState(false)
+  const [page, setPage] = useState(1)
+  const [total, setTotal] = useState(0)
+  const limit = 6
   const { register, handleSubmit, formState: { errors, isSubmitting }, reset } = useForm()
+  const formRef = useRef(null)
 
   useEffect(() => {
-    testimonialsAPI.getAll({ status: 'published' })
-      .then(({ data }) => { if (data.length > 0) setTestimonials(data) })
+    testimonialsAPI.getAll({ status: 'published', skip: (page - 1) * limit, limit })
+      .then(({ data }) => {
+        if (data.items.length > 0) setTestimonials(data.items)
+        setTotal(data.total)
+      })
       .catch(() => {})
-  }, [])
+  }, [page])
 
   const onSubmit = async (data) => {
     try {
@@ -31,6 +38,7 @@ export default function TestimonialsPage() {
       setSubmitted(true)
       reset()
       toast.success('Review submitted! It will appear after review.')
+      setTimeout(() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100)
     } catch {
       toast.error('Failed to submit. Please try again.')
     }
@@ -52,6 +60,58 @@ export default function TestimonialsPage() {
 
       <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Submit review */}
+          <div className="max-w-2xl mx-auto mb-20" ref={formRef}>
+            <div className="card p-8 border border-gray-100">
+              <h2 className="font-display font-bold text-navy text-2xl mb-2 text-center">Share Your Experience</h2>
+              <p className="text-gray-500 text-sm text-center mb-6">Had a great cleaning? We'd love to hear about it.</p>
+              {submitted ? (
+                <div className="text-center py-8">
+                  <CheckCircle2 size={48} className="text-green mx-auto mb-3" />
+                  <h3 className="font-bold text-navy text-lg mb-2">Thank you for your review!</h3>
+                  <p className="text-gray-500 text-sm">It will appear on this page after approval.</p>
+                </div>
+              ) : (
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 w-full">
+                  <div className="grid sm:grid-cols-2 gap-4 w-full">
+                    <div className="w-full">
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Your Name *</label>
+                      <input {...register('client_name', { required: true })} className="input-field w-full max-w-full" placeholder="Jane Smith" />
+                      {errors.client_name && <p className="text-red-500 text-xs mt-1">Required</p>}
+                    </div>
+                    <div className="w-full">
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Location</label>
+                      <input {...register('location')} className="input-field w-full max-w-full" placeholder="City, OH" />
+                    </div>
+                  </div>
+                  <div className="grid sm:grid-cols-2 gap-4 w-full">
+                    <div className="w-full">
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Service Used</label>
+                      <select {...register('service_type')} className="input-field w-full max-w-full">
+                        <option value="">Select service...</option>
+                        {['Residential Cleaning', 'Commercial Cleaning', 'Deep Cleaning', 'Move In/Move Out', 'Post-Construction', 'Recurring Maintenance'].map(s => <option key={s}>{s}</option>)}
+                      </select>
+                    </div>
+                    <div className="w-full">
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Rating *</label>
+                      <select {...register('rating', { required: true, valueAsNumber: true })} className="input-field w-full max-w-full">
+                        {[5, 4, 3, 2, 1].map(r => <option key={r} value={r}>{'⭐'.repeat(r)} ({r} stars)</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  <div className="w-full">
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Your Review *</label>
+                    <textarea {...register('review', { required: 'Please share your experience' })} className="input-field resize-none w-full max-w-full" rows={4} placeholder="Tell us about your experience..." />
+                    {errors.review && <p className="text-red-500 text-xs mt-1">{errors.review.message}</p>}
+                  </div>
+                  <button type="submit" disabled={isSubmitting} className="btn-primary w-full justify-center">
+                    {isSubmitting ? 'Submitting...' : 'Submit Review'}
+                  </button>
+                </form>
+              )}
+            </div>
+          </div>
+
           {/* Stats */}
           <div className="grid grid-cols-3 gap-6 mb-16">
             {[['500+', 'Happy Clients'], ['100%', 'Satisfaction Rate'], ['5.0', 'Average Rating']].map(([n, l]) => (
@@ -62,7 +122,7 @@ export default function TestimonialsPage() {
             ))}
           </div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-20">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
             {testimonials.map((t) => (
               <div key={t.id} className="card p-7 border border-gray-100 hover:border-sky/30 group transition-all duration-300 relative">
                 <Quote size={36} className="text-sky/15 absolute top-4 right-4" />
@@ -79,57 +139,24 @@ export default function TestimonialsPage() {
             ))}
           </div>
 
-          {/* Submit review */}
-          <div className="max-w-2xl mx-auto">
-            <div className="card p-8 border border-gray-100">
-              <h2 className="font-display font-bold text-navy text-2xl mb-2 text-center">Share Your Experience</h2>
-              <p className="text-gray-500 text-sm text-center mb-6">Had a great cleaning? We'd love to hear about it.</p>
-              {submitted ? (
-                <div className="text-center py-8">
-                  <CheckCircle2 size={48} className="text-green mx-auto mb-3" />
-                  <h3 className="font-bold text-navy text-lg mb-2">Thank you for your review!</h3>
-                  <p className="text-gray-500 text-sm">It will appear on this page after approval.</p>
-                </div>
-              ) : (
-                <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                  <div className="grid sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Your Name *</label>
-                      <input {...register('client_name', { required: true })} className="input-field" placeholder="Jane Smith" />
-                      {errors.client_name && <p className="text-red-500 text-xs mt-1">Required</p>}
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Location</label>
-                      <input {...register('location')} className="input-field" placeholder="City, OH" />
-                    </div>
-                  </div>
-                  <div className="grid sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Service Used</label>
-                      <select {...register('service_type')} className="input-field">
-                        <option value="">Select service...</option>
-                        {['Residential Cleaning', 'Commercial Cleaning', 'Deep Cleaning', 'Move In/Move Out', 'Post-Construction', 'Recurring Maintenance'].map(s => <option key={s}>{s}</option>)}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Rating *</label>
-                      <select {...register('rating', { required: true, valueAsNumber: true })} className="input-field">
-                        {[5, 4, 3, 2, 1].map(r => <option key={r} value={r}>{'⭐'.repeat(r)} ({r} stars)</option>)}
-                      </select>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Your Review *</label>
-                    <textarea {...register('review', { required: 'Please share your experience' })} className="input-field resize-none" rows={4} placeholder="Tell us about your experience..." />
-                    {errors.review && <p className="text-red-500 text-xs mt-1">{errors.review.message}</p>}
-                  </div>
-                  <button type="submit" disabled={isSubmitting} className="btn-primary w-full justify-center">
-                    {isSubmitting ? 'Submitting...' : 'Submit Review'}
-                  </button>
-                </form>
-              )}
+          {total > limit && (
+            <div className="flex justify-center gap-4 mb-20">
+              <button 
+                onClick={() => setPage(p => Math.max(1, p - 1))} 
+                disabled={page === 1}
+                className="btn-secondary disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Previous
+              </button>
+              <button 
+                onClick={() => setPage(p => p + 1)} 
+                disabled={page * limit >= total}
+                className="btn-secondary disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next
+              </button>
             </div>
-          </div>
+          )}
         </div>
       </section>
     </PageLayout>

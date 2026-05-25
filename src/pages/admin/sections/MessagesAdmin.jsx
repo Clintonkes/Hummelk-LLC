@@ -11,7 +11,12 @@ function MessageModal({ msg, onClose, onUpdate }) {
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
-    if (msg.status === 'unread') messagesAPI.update(msg.id, { status: 'read' }).then(onUpdate).catch(() => {})
+    if (msg.status === 'unread') {
+      messagesAPI.update(msg.id, { status: 'read' }).then(() => {
+        window.dispatchEvent(new Event('refreshStats'))
+        onUpdate()
+      }).catch(() => {})
+    }
   }, [])
 
   const sendReply = async () => {
@@ -19,6 +24,7 @@ function MessageModal({ msg, onClose, onUpdate }) {
     try {
       await messagesAPI.update(msg.id, { reply, status: 'replied' })
       toast.success('Reply saved')
+      window.dispatchEvent(new Event('refreshStats'))
       onUpdate(); onClose()
     } catch { toast.error('Failed') } finally { setSaving(false) }
   }
@@ -59,15 +65,26 @@ export default function MessagesAdmin() {
   const [selected, setSelected] = useState(null)
   const [filter, setFilter] = useState('')
 
+  const [page, setPage] = useState(1)
+  const [total, setTotal] = useState(0)
+  const limit = 10
+
   const load = () => {
     setLoading(true)
-    messagesAPI.getAll(filter ? { status: filter } : {})
-      .then(({ data }) => setMessages(data))
+    const skip = (page - 1) * limit
+    const params = { skip, limit }
+    if (filter) params.status = filter
+    
+    messagesAPI.getAll(params)
+      .then(({ data }) => {
+        setMessages(data.items)
+        setTotal(data.total)
+      })
       .catch(() => toast.error('Failed to load'))
       .finally(() => setLoading(false))
   }
 
-  useEffect(() => { load() }, [filter])
+  useEffect(() => { load() }, [filter, page])
 
   const remove = async (id) => {
     if (!confirm('Delete this message?')) return
@@ -88,28 +105,53 @@ export default function MessagesAdmin() {
       ) : messages.length === 0 ? (
         <div className="card p-12 text-center border border-gray-100"><MessageSquare size={40} className="text-gray-300 mx-auto mb-3" /><p className="text-gray-400">No messages</p></div>
       ) : (
-        <div className="space-y-3">
-          {messages.map(m => (
-            <div key={m.id} className={clsx('card p-5 border transition-all duration-200 flex items-start gap-4', m.status === 'unread' ? 'border-sky/30 bg-sky/5' : 'border-gray-100')}>
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-sky to-navy flex items-center justify-center shrink-0">
-                <MessageSquare size={16} className="text-white" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-3 mb-1">
-                  <span className="font-semibold text-navy text-sm">{m.full_name}</span>
-                  <span className={clsx('badge text-xs', STATUS_COLORS[m.status])}>{m.status}</span>
-                  <span className="text-xs text-gray-400 ml-auto">{new Date(m.created_at).toLocaleDateString()}</span>
+        <>
+          <div className="space-y-3">
+            {messages.map(m => (
+              <div key={m.id} className={clsx('card p-5 border transition-all duration-200 flex items-start gap-4', m.status === 'unread' ? 'border-sky/30 bg-sky/5' : 'border-gray-100')}>
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-sky to-navy flex items-center justify-center shrink-0">
+                  <MessageSquare size={16} className="text-white" />
                 </div>
-                <div className="text-xs text-gray-400 mb-2">{m.email} · {m.subject}</div>
-                <p className="text-gray-600 text-sm truncate">{m.message}</p>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-3 mb-1">
+                    <span className="font-semibold text-navy text-sm">{m.full_name}</span>
+                    <span className={clsx('badge text-xs', STATUS_COLORS[m.status])}>{m.status}</span>
+                    <span className="text-xs text-gray-400 ml-auto">{new Date(m.created_at).toLocaleDateString()}</span>
+                  </div>
+                  <div className="text-xs text-gray-400 mb-2">{m.email} · {m.subject}</div>
+                  <p className="text-gray-600 text-sm truncate">{m.message}</p>
+                </div>
+                <div className="flex gap-1.5 shrink-0">
+                  <button onClick={() => setSelected(m)} className="p-2 rounded-lg hover:bg-sky/10 text-sky transition-colors"><Eye size={15} /></button>
+                  <button onClick={() => remove(m.id)} className="p-2 rounded-lg hover:bg-red-50 text-red-400 transition-colors"><Trash2 size={15} /></button>
+                </div>
               </div>
-              <div className="flex gap-1.5 shrink-0">
-                <button onClick={() => setSelected(m)} className="p-2 rounded-lg hover:bg-sky/10 text-sky transition-colors"><Eye size={15} /></button>
-                <button onClick={() => remove(m.id)} className="p-2 rounded-lg hover:bg-red-50 text-red-400 transition-colors"><Trash2 size={15} /></button>
+            ))}
+          </div>
+          {total > limit && (
+            <div className="px-5 py-4 border-t border-gray-100 flex items-center justify-between bg-gray-50 mt-4 rounded-xl">
+              <div className="text-sm text-gray-500">
+                Showing {((page - 1) * limit) + 1} to {Math.min(page * limit, total)} of {total} results
+              </div>
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => setPage(p => Math.max(1, p - 1))} 
+                  disabled={page === 1}
+                  className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg bg-white text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
+                >
+                  Previous
+                </button>
+                <button 
+                  onClick={() => setPage(p => p + 1)} 
+                  disabled={page * limit >= total}
+                  className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg bg-white text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
+                >
+                  Next
+                </button>
               </div>
             </div>
-          ))}
-        </div>
+          )}
+        </>
       )}
       {selected && <MessageModal msg={selected} onClose={() => setSelected(null)} onUpdate={load} />}
     </div>

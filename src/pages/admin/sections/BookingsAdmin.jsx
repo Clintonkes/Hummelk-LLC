@@ -49,7 +49,7 @@ function BookingModal({ booking, onClose, onUpdate }) {
           {booking.notes && <div><div className="text-xs text-gray-400 mb-0.5">Client Notes</div><div className="text-sm text-gray-600 bg-gray-50 rounded-lg p-3">{booking.notes}</div></div>}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Status</label>
-            <select value={status} onChange={e => setStatus(e.target.value)} className="input-field">
+            <select value={status} onChange={e => setStatus(e.target.value)} disabled={booking.status === 'completed'} className="input-field disabled:opacity-50 disabled:cursor-not-allowed">
               {['pending', 'confirmed', 'completed', 'cancelled'].map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
             </select>
           </div>
@@ -72,16 +72,26 @@ export default function BookingsAdmin() {
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('')
   const [selected, setSelected] = useState(null)
+  const [page, setPage] = useState(1)
+  const [total, setTotal] = useState(0)
+  const limit = 10
 
   const load = () => {
     setLoading(true)
-    bookingsAPI.getAll(filter ? { status: filter } : {})
-      .then(({ data }) => setBookings(data))
+    const skip = (page - 1) * limit
+    const params = { skip, limit }
+    if (filter) params.status = filter
+    
+    bookingsAPI.getAll(params)
+      .then(({ data }) => {
+        setBookings(data.items)
+        setTotal(data.total)
+      })
       .catch(() => toast.error('Failed to load bookings'))
       .finally(() => setLoading(false))
   }
 
-  useEffect(() => { load() }, [filter])
+  useEffect(() => { load() }, [filter, page])
 
   const remove = async (id) => {
     if (!confirm('Delete this booking?')) return
@@ -147,6 +157,29 @@ export default function BookingsAdmin() {
               </tbody>
             </table>
           </div>
+          {total > limit && (
+            <div className="px-5 py-4 border-t border-gray-100 flex items-center justify-between bg-gray-50">
+              <div className="text-sm text-gray-500">
+                Showing {((page - 1) * limit) + 1} to {Math.min(page * limit, total)} of {total} results
+              </div>
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => setPage(p => Math.max(1, p - 1))} 
+                  disabled={page === 1}
+                  className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg bg-white text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
+                >
+                  Previous
+                </button>
+                <button 
+                  onClick={() => setPage(p => p + 1)} 
+                  disabled={page * limit >= total}
+                  className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg bg-white text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

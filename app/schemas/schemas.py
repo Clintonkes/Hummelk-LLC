@@ -137,3 +137,19 @@ class DashboardStats(BaseModel):
     total_testimonials: int
     pending_testimonials: int
     total_services: int
+
+class PaginatedBookings(BaseModel):
+    items: List[BookingResponse]
+    total: int
+
+class PaginatedMessages(BaseModel):
+    items: List[MessageResponse]
+    total: int
+
+class PaginatedTestimonials(BaseModel):
+    items: List[TestimonialResponse]
+    total: int
+
+class PaginatedServices(BaseModel):
+    items: List[ServiceResponse]
+    total: int

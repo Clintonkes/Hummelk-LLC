@@ -53,15 +53,23 @@ export default function ServicesAdmin() {
   const [editing, setEditing] = useState(null)
   const [adding, setAdding] = useState(false)
 
+  const [page, setPage] = useState(1)
+  const [total, setTotal] = useState(0)
+  const limit = 10
+
   const load = () => {
     setLoading(true)
-    servicesAPI.getAllAdmin()
-      .then(({ data }) => setServices(data))
+    const skip = (page - 1) * limit
+    servicesAPI.getAllAdmin({ skip, limit })
+      .then(({ data }) => {
+        setServices(data.items)
+        setTotal(data.total)
+      })
       .catch(() => toast.error('Failed to load'))
       .finally(() => setLoading(false))
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { load() }, [page])
 
   const remove = async (id) => {
     if (!confirm('Delete this service?')) return
@@ -113,6 +121,29 @@ export default function ServicesAdmin() {
               ))}
             </tbody>
           </table>
+          {total > limit && (
+            <div className="px-5 py-4 border-t border-gray-100 flex items-center justify-between bg-gray-50">
+              <div className="text-sm text-gray-500">
+                Showing {((page - 1) * limit) + 1} to {Math.min(page * limit, total)} of {total} results
+              </div>
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => setPage(p => Math.max(1, p - 1))} 
+                  disabled={page === 1}
+                  className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg bg-white text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
+                >
+                  Previous
+                </button>
+                <button 
+                  onClick={() => setPage(p => p + 1)} 
+                  disabled={page * limit >= total}
+                  className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg bg-white text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
       {(adding || editing) && <ServiceForm service={editing} onClose={() => { setAdding(false); setEditing(null) }} onSave={() => { setAdding(false); setEditing(null); load() }} />}

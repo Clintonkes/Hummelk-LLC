@@ -56,8 +56,8 @@ export const testimonialsAPI = {
 }
 
 export const servicesAPI = {
-  getAll: () => api.get('/services/'),
-  getAllAdmin: () => api.get('/services/admin/all'),
+  getAll: (params) => api.get('/services/', { params }),
+  getAllAdmin: (params) => api.get('/services/admin/all', { params }),
   create: (data) => api.post('/services/', data),
   update: (id, data) => api.put(`/services/${id}`, data),
   delete: (id) => api.delete(`/services/${id}`),

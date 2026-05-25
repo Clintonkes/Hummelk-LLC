@@ -53,7 +53,10 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState(null)
 
   useEffect(() => {
-    settingsAPI.getStats().then(({ data }) => setStats(data)).catch(() => {})
+    const fetchStats = () => settingsAPI.getStats().then(({ data }) => setStats(data)).catch(() => {})
+    fetchStats()
+    window.addEventListener('refreshStats', fetchStats)
+    return () => window.removeEventListener('refreshStats', fetchStats)
   }, [])
 
   const handleLogout = () => {
@@ -138,7 +141,7 @@ export default function AdminDashboard() {
       </>
 
       {/* Main content */}
-      <div className="flex-1 lg:ml-64 flex flex-col min-h-screen">
+      <div className="flex-1 lg:ml-64 flex flex-col min-h-screen overflow-x-hidden w-full max-w-[100vw] lg:max-w-none">
         {/* Top bar */}
         <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between sticky top-0 z-30">
           <button onClick={() => setSidebarOpen(true)} className="lg:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors">
@@ -150,7 +153,7 @@ export default function AdminDashboard() {
             <span className="text-navy font-medium capitalize">{pathname.split('/').pop() || 'Overview'}</span>
           </div>
           <div className="flex items-center gap-3">
-            <Link to="/" target="_blank" className="text-xs text-gray-400 hover:text-navy transition-colors">View Site</Link>
+            <Link to="/" className="text-xs text-gray-400 hover:text-navy transition-colors">View Site</Link>
             <div className="relative">
               <Bell size={18} className="text-gray-400 hover:text-navy cursor-pointer transition-colors" />
               {(stats?.unread_messages > 0 || stats?.pending_bookings > 0) && (

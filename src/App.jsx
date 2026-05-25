@@ -14,6 +14,8 @@ import ContactPage from './pages/ContactPage'
 import AdminLoginPage from './pages/admin/AdminLoginPage'
 import AdminDashboard from './pages/admin/AdminDashboard'
 
+import ScrollToTop from './components/ScrollToTop'
+
 function ProtectedRoute({ children }) {
   const { isAuthenticated } = useAuth()
   return isAuthenticated ? children : <Navigate to="/admin/login" replace />
@@ -22,6 +24,7 @@ function ProtectedRoute({ children }) {
 export default function App() {
   return (
     <AuthProvider>
+      <ScrollToTop />
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/about" element={<AboutPage />} />

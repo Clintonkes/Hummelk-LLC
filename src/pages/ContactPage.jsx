@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import PageLayout from '../components/layout/PageLayout'
 import { messagesAPI } from '../utils/api'
@@ -8,6 +8,7 @@ import toast from 'react-hot-toast'
 export default function ContactPage() {
   const [submitted, setSubmitted] = useState(false)
   const { register, handleSubmit, formState: { errors, isSubmitting }, reset } = useForm()
+  const formRef = useRef(null)
 
   const onSubmit = async (data) => {
     try {
@@ -15,6 +16,7 @@ export default function ContactPage() {
       setSubmitted(true)
       reset()
       toast.success('Message sent successfully!')
+      setTimeout(() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100)
     } catch {
       toast.error('Failed to send message. Please try again.')
     }
@@ -37,8 +39,57 @@ export default function ContactPage() {
       <section className="py-20 bg-white">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid lg:grid-cols-3 gap-10">
+            {/* Form */}
+            <div className="lg:col-span-2 order-1" ref={formRef}>
+              {submitted ? (
+                <div className="card p-12 text-center border border-green/20 bg-green/5">
+                  <CheckCircle2 size={48} className="text-green mx-auto mb-4" />
+                  <h3 className="font-display font-bold text-navy text-2xl mb-3">Message Sent!</h3>
+                  <p className="text-gray-500 mb-6">We'll get back to you within 24 hours. Thank you!</p>
+                  <button onClick={() => setSubmitted(false)} className="btn-primary mx-auto">Send Another Message</button>
+                </div>
+              ) : (
+                <div className="card p-8 border border-gray-100">
+                  <h2 className="font-display font-bold text-navy text-2xl mb-6">Send Us a Message</h2>
+                  <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 w-full">
+                    <div className="grid sm:grid-cols-2 gap-5 w-full">
+                      <div className="w-full">
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">Full Name *</label>
+                        <input {...register('full_name', { required: 'Required' })} className="input-field w-full max-w-full" placeholder="Jane Smith" />
+                        {errors.full_name && <p className="text-red-500 text-xs mt-1">{errors.full_name.message}</p>}
+                      </div>
+                      <div className="w-full">
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">Email *</label>
+                        <input {...register('email', { required: 'Required', pattern: { value: /^\S+@\S+$/i, message: 'Invalid email' } })} className="input-field w-full max-w-full" placeholder="jane@email.com" type="email" />
+                        {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>}
+                      </div>
+                    </div>
+                    <div className="grid sm:grid-cols-2 gap-5 w-full">
+                      <div className="w-full">
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">Phone</label>
+                        <input {...register('phone')} className="input-field w-full max-w-full" placeholder="(440) 000-0000" />
+                      </div>
+                      <div className="w-full">
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">Subject *</label>
+                        <input {...register('subject', { required: 'Required' })} className="input-field w-full max-w-full" placeholder="How can we help?" />
+                        {errors.subject && <p className="text-red-500 text-xs mt-1">{errors.subject.message}</p>}
+                      </div>
+                    </div>
+                    <div className="w-full">
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Message *</label>
+                      <textarea {...register('message', { required: 'Please enter your message' })} className="input-field resize-none w-full max-w-full" rows={5} placeholder="Tell us about your cleaning needs..." />
+                      {errors.message && <p className="text-red-500 text-xs mt-1">{errors.message.message}</p>}
+                    </div>
+                    <button type="submit" disabled={isSubmitting} className="btn-primary w-full justify-center text-base py-4">
+                      {isSubmitting ? 'Sending...' : 'Send Message'}
+                    </button>
+                  </form>
+                </div>
+              )}
+            </div>
+
             {/* Contact info */}
-            <div className="space-y-6">
+            <div className="space-y-6 order-2 mt-8 lg:mt-0">
               {[
                 { icon: Phone, title: 'Phone', content: '1(440) 554-2773', sub: 'Mon–Sat: 8am – 6pm', href: 'tel:14405542773' },
                 { icon: Mail, title: 'Email', content: 'info@hummelkllc.com', sub: 'Response within 24 hours', href: 'mailto:info@hummelkllc.com' },
@@ -60,55 +111,6 @@ export default function ContactPage() {
                   </div>
                 </div>
               ))}
-            </div>
-
-            {/* Form */}
-            <div className="lg:col-span-2">
-              {submitted ? (
-                <div className="card p-12 text-center border border-green/20 bg-green/5">
-                  <CheckCircle2 size={48} className="text-green mx-auto mb-4" />
-                  <h3 className="font-display font-bold text-navy text-2xl mb-3">Message Sent!</h3>
-                  <p className="text-gray-500 mb-6">We'll get back to you within 24 hours. Thank you!</p>
-                  <button onClick={() => setSubmitted(false)} className="btn-primary mx-auto">Send Another Message</button>
-                </div>
-              ) : (
-                <div className="card p-8 border border-gray-100">
-                  <h2 className="font-display font-bold text-navy text-2xl mb-6">Send Us a Message</h2>
-                  <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-                    <div className="grid sm:grid-cols-2 gap-5">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1.5">Full Name *</label>
-                        <input {...register('full_name', { required: 'Required' })} className="input-field" placeholder="Jane Smith" />
-                        {errors.full_name && <p className="text-red-500 text-xs mt-1">{errors.full_name.message}</p>}
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1.5">Email *</label>
-                        <input {...register('email', { required: 'Required', pattern: { value: /^\S+@\S+$/i, message: 'Invalid email' } })} className="input-field" placeholder="jane@email.com" type="email" />
-                        {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>}
-                      </div>
-                    </div>
-                    <div className="grid sm:grid-cols-2 gap-5">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1.5">Phone</label>
-                        <input {...register('phone')} className="input-field" placeholder="(440) 000-0000" />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1.5">Subject *</label>
-                        <input {...register('subject', { required: 'Required' })} className="input-field" placeholder="How can we help?" />
-                        {errors.subject && <p className="text-red-500 text-xs mt-1">{errors.subject.message}</p>}
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Message *</label>
-                      <textarea {...register('message', { required: 'Please enter your message' })} className="input-field resize-none" rows={5} placeholder="Tell us about your cleaning needs..." />
-                      {errors.message && <p className="text-red-500 text-xs mt-1">{errors.message.message}</p>}
-                    </div>
-                    <button type="submit" disabled={isSubmitting} className="btn-primary w-full justify-center text-base py-4">
-                      {isSubmitting ? 'Sending...' : 'Send Message'}
-                    </button>
-                  </form>
-                </div>
-              )}
             </div>
           </div>
         </div>

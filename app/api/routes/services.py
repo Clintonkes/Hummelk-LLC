@@ -2,19 +2,25 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 from app.database import get_db
-from app.schemas.schemas import ServiceCreate, ServiceUpdate, ServiceResponse
+from app.schemas.schemas import ServiceCreate, ServiceUpdate, ServiceResponse, PaginatedServices
 from app.models.models import Service
 from app.core.deps import get_current_admin
 
 router = APIRouter()
 
-@router.get("/", response_model=List[ServiceResponse])
-def get_services(db: Session = Depends(get_db)):
-    return db.query(Service).filter(Service.is_active == True).order_by(Service.order).all()
+@router.get("/", response_model=PaginatedServices)
+def get_services(skip: int = 0, limit: int = 50, db: Session = Depends(get_db)):
+    query = db.query(Service).filter(Service.is_active == True)
+    total = query.count()
+    items = query.order_by(Service.order).offset(skip).limit(limit).all()
+    return {"items": items, "total": total}
 
-@router.get("/admin/all", response_model=List[ServiceResponse])
-def get_all_services(db: Session = Depends(get_db), _=Depends(get_current_admin)):
-    return db.query(Service).order_by(Service.order).all()
+@router.get("/admin/all", response_model=PaginatedServices)
+def get_all_services(skip: int = 0, limit: int = 50, db: Session = Depends(get_db), _=Depends(get_current_admin)):
+    query = db.query(Service)
+    total = query.count()
+    items = query.order_by(Service.order).offset(skip).limit(limit).all()
+    return {"items": items, "total": total}
 
 @router.post("/", response_model=ServiceResponse, status_code=201)
 def create_service(service: ServiceCreate, db: Session = Depends(get_db), _=Depends(get_current_admin)):

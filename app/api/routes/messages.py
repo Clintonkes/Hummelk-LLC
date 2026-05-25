@@ -8,21 +8,33 @@ from app.core.deps import get_current_admin
 
 router = APIRouter()
 
+from app.core.email import send_email
+
 @router.post("/", response_model=MessageResponse, status_code=201)
 def create_message(message: MessageCreate, db: Session = Depends(get_db)):
     db_message = Message(**message.model_dump())
     db.add(db_message)
     db.commit()
     db.refresh(db_message)
+    
+    # Send email notification
+    send_email(
+        to=db_message.email,
+        subject="We've received your message - Hummelk LLC",
+        html=f"<h3>Hello {db_message.full_name},</h3><p>Thank you for contacting Hummelk LLC. We have received your message regarding '{db_message.subject}' and will get back to you within 24 hours.</p><p>Best regards,<br>The Hummelk Team</p>"
+    )
+    
     return db_message
 
-@router.get("/", response_model=List[MessageResponse])
+@router.get("/", response_model=PaginatedMessages)
 def get_messages(skip: int = 0, limit: int = 50, status: Optional[str] = None,
                  db: Session = Depends(get_db), _=Depends(get_current_admin)):
     query = db.query(Message)
     if status:
         query = query.filter(Message.status == status)
-    return query.order_by(Message.created_at.desc()).offset(skip).limit(limit).all()
+    total = query.count()
+    items = query.order_by(Message.created_at.desc()).offset(skip).limit(limit).all()
+    return {"items": items, "total": total}
 
 @router.get("/{message_id}", response_model=MessageResponse)
 def get_message(message_id: int, db: Session = Depends(get_db), _=Depends(get_current_admin)):

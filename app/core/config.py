@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     ADMIN_EMAIL: str = "admin@hummelkllc.com"
     ADMIN_PASSWORD: str = "Admin@123!"
     CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000"
+    RESEND_API_KEY: str = ""
 
     @property
     def cors_origins_list(self) -> List[str]:
