@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from app.database import get_db
-from app.schemas.schemas import BookingCreate, BookingUpdate, BookingResponse
+from app.schemas.schemas import BookingCreate, BookingUpdate, BookingResponse, PaginatedBookings
 from app.models.models import Booking
 from app.core.deps import get_current_admin
 

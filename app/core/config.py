@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     ADMIN_PASSWORD: str = "Admin@123!"
     CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000"
     RESEND_API_KEY: str = ""
+    FROM_DOMAIN: str = ""  # e.g. hummelkllc.com — set after verifying domain in Resend
 
     @property
     def cors_origins_list(self) -> List[str]:
